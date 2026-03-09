@@ -29,6 +29,22 @@ int main()
 {
     data_hal_init();
 
+    const struct data_heartbeat heartbeat1 = {
+        .robot_mode = ROBOT_MODE_DEBUG,
+        .team_color = TEAM_COLOR_BLUE,
+        .goal_zone = 10,
+        .game_time = 12345,
+    };
+    data_send_heartbeat(heartbeat1);
+
+    const struct data_heartbeat heartbeat2 = {
+        .robot_mode = ROBOT_MODE_MATCH,
+        .team_color = TEAM_COLOR_YELLOW,
+        .goal_zone = 20,
+        .game_time = 67890,
+    };
+    data_send_heartbeat(heartbeat2);
+
     while (1) {
         struct data_frame frame;
         data_recv_frame(&frame);

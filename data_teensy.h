@@ -2,13 +2,6 @@
 
 #include "data.h"
 
-struct data_heartbeat {
-    enum robot_mode robot_mode;
-    enum team_color team_color;
-    uint8_t goal_zone;
-    uint32_t game_time;
-};
-
 // this function blocks until it receives a valid heartbeat frame
 void data_recv_heartbeat_frame(struct data_heartbeat *out);
 

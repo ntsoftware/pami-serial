@@ -38,3 +38,10 @@ enum data_frame_type {
     DATA_TYPE_PATH = 6,
     DATA_TYPE_MOTOR = 7,
 };
+
+struct data_heartbeat {
+    enum robot_mode robot_mode;
+    enum team_color team_color;
+    uint8_t goal_zone;
+    uint32_t game_time;
+};

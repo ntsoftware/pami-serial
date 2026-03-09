@@ -3,7 +3,13 @@
 #include "data_bw16_hal.h"
 
 static uint8_t rx_checksum;
-// static uint8_t tx_checksum;
+static uint8_t tx_checksum;
+
+static void send_frame_header(enum data_frame_type frame_type);
+static void send_frame_checksum();
+static void send_buf(const uint8_t *buf, size_t n);
+static void send_u8(uint8_t x);
+static void send_u32(uint32_t x);
 
 static int recv_frame_header();
 static bool recv_frame_checksum();
@@ -28,6 +34,16 @@ static struct point2d data_obstacle_points[MAX_OBSTACLE_POINTS];
 
 #define MAX_PATH_POINTS 9600
 static struct path_point data_path_points[MAX_PATH_POINTS];
+
+void data_send_heartbeat(const struct data_heartbeat &heartbeat)
+{
+    send_frame_header(DATA_TYPE_HEARTBEAT);
+    send_u8(heartbeat.robot_mode);
+    send_u8(heartbeat.team_color);
+    send_u8(heartbeat.goal_zone);
+    send_u32(heartbeat.game_time);
+    send_frame_checksum();
+}
 
 void data_recv_frame(struct data_frame *frame)
 {
@@ -258,6 +274,44 @@ static bool recv_u16(uint16_t *out)
 static bool recv_u32(uint32_t *out)
 {
     return recv_buf((uint8_t *) out, 4);
+}
+
+static void send_frame_header(enum data_frame_type frame_type)
+{
+    const uint8_t buf[3] = {
+        0x55,
+        0xAA,
+        (uint8_t) (frame_type),
+    };
+    tx_checksum = 0;
+    send_buf(buf, sizeof(buf));
+}
+
+static void send_frame_checksum()
+{
+    uint8_t x = -tx_checksum;
+    data_hal_send(&x, 1, true);
+}
+
+static void send_buf(const uint8_t *buf, size_t n)
+{
+    data_hal_send(buf, n, false);
+    for (size_t i = 0; i < n; ++i) {
+        tx_checksum += buf[i];
+    }
+}
+
+static void send_u8(uint8_t x)
+{
+    data_hal_send(&x, 1, false);
+    tx_checksum += x;
+}
+
+static void send_u32(uint32_t x)
+{
+    const uint8_t *buf = (const uint8_t *) &x;
+    data_hal_send(buf, 4, false);
+    tx_checksum += buf[0] + buf[1] + buf[2] + buf[3];
 }
 
 struct point2d *data_acquire_border_points()
