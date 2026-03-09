@@ -1,0 +1,27 @@
+#pragma once
+
+#include "data.h"
+
+struct data_heartbeat {
+    enum robot_mode robot_mode;
+    enum team_color team_color;
+    uint8_t goal_zone;
+    uint32_t game_time;
+};
+
+// this function blocks until it receives a valid heartbeat frame
+void data_recv_heartbeat_frame(struct data_heartbeat *out);
+
+void data_send_move_frame(int16_t delta_x, int16_t delta_y, int16_t delta_theta);
+
+void data_send_scan_frame(
+    const struct point2d *border_points, size_t border_point_count,
+    const struct point2d *obstacle_points, size_t obstacle_point_count
+);
+
+void data_send_estimated_pose_frame(uint16_t x, uint16_t y, int16_t theta);
+void data_send_current_pose_frame(uint16_t x, uint16_t y, int16_t theta);
+
+void data_send_path_frame(const struct path_point *points, size_t point_count);
+
+void data_send_motor_frame(int16_t speed_a, int16_t speed_b, int16_t speed_c);
