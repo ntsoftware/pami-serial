@@ -90,11 +90,11 @@ static bool recv_scan_frame(struct data_frame *frame)
 
     if (!recv_u16(&border_point_count)) goto err;
     border_points = data_acquire_border_points();
-    if (!recv_buf((uint8_t *) border_points, 2 * border_point_count)) goto err;
+    if (!recv_buf((uint8_t *) border_points, 4 * border_point_count)) goto err;
 
     if (!recv_u16(&obstacle_point_count)) goto err;
     obstacle_points = data_acquire_obstacle_points();
-    if (!recv_buf((uint8_t *) obstacle_points, 2 * obstacle_point_count)) goto err;
+    if (!recv_buf((uint8_t *) obstacle_points, 4 * obstacle_point_count)) goto err;
 
     if (!recv_frame_checksum()) goto err;
 
