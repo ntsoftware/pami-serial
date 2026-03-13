@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data.h"
+#include "../data_types.h"
 
 // this function blocks until it receives a valid heartbeat frame
 void data_recv_heartbeat_frame(struct data_heartbeat *out);

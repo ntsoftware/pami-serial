@@ -1,6 +1,5 @@
 #include "data.h"
-#include "data_teensy.h"
-#include "data_teensy_hal.h"
+#include "hal.h"
 
 static uint8_t rx_checksum;
 static uint8_t tx_checksum;
@@ -120,12 +119,12 @@ static void send_frame_header(enum data_frame_type frame_type)
 static void send_frame_checksum()
 {
     uint8_t x = -tx_checksum;
-    data_hal_send(&x, 1, true);
+    hal_uart_send(&x, 1, true);
 }
 
 static void send_buf(const uint8_t *buf, size_t n)
 {
-    data_hal_send(buf, n, false);
+    hal_uart_send(buf, n, false);
     for (size_t i = 0; i < n; ++i) {
         tx_checksum += buf[i];
     }
@@ -133,23 +132,17 @@ static void send_buf(const uint8_t *buf, size_t n)
 
 static void send_i16(int16_t x)
 {
-    const uint8_t *buf = (const uint8_t *) &x;
-    data_hal_send(buf, 2, false);
-    tx_checksum += buf[0] + buf[1];
+    send_buf((const uint8_t *) &x, 2);
 }
 
 static void send_u16(uint16_t x)
 {
-    const uint8_t *buf = (const uint8_t *) &x;
-    data_hal_send(buf, 2, false);
-    tx_checksum += buf[0] + buf[1];
+    send_buf((const uint8_t *) &x, 2);
 }
 
 static void send_u32(uint32_t x)
 {
-    const uint8_t *buf = (const uint8_t *) &x;
-    data_hal_send(buf, 4, false);
-    tx_checksum += buf[0] + buf[1] + buf[2] + buf[3];
+    send_buf((const uint8_t *) &x, 4);
 }
 
 static int recv_frame_header()
@@ -176,7 +169,7 @@ static bool recv_frame_checksum()
 
 static bool recv_buf(uint8_t *buf, size_t n)
 {
-    if (data_hal_recv(buf, n) == (int) n) {
+    if (hal_uart_recv(buf, n) == (int) n) {
         for (size_t i = 0; i < n; ++i) {
             rx_checksum += buf[i];
         }

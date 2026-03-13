@@ -1,7 +1,6 @@
 #include <stdio.h>
-#include "data.h"
-#include "data_bw16.h"
-#include "data_bw16_hal.h"
+#include "bw16/data.h"
+#include "bw16/hal.h"
 
 static void print_points(const struct point2d *points, size_t n)
 {
@@ -27,7 +26,7 @@ static void print_path(const struct path_point *points, size_t n)
 
 int main()
 {
-    data_hal_init();
+    hal_init();
 
     const struct data_heartbeat heartbeat1 = {
         .robot_mode = ROBOT_MODE_DEBUG,

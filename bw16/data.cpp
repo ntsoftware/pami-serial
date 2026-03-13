@@ -1,6 +1,5 @@
 #include "data.h"
-#include "data_bw16.h"
-#include "data_bw16_hal.h"
+#include "hal.h"
 
 static uint8_t rx_checksum;
 static uint8_t tx_checksum;
@@ -19,21 +18,12 @@ static bool recv_i16(int16_t *out);
 static bool recv_u16(uint16_t *out);
 static bool recv_u32(uint32_t *out);
 
-static bool recv_move_frame(struct data_frame *frame);
-static bool recv_scan_frame(struct data_frame *frame);
-static bool recv_estimated_pose_frame(struct data_frame *frame);
-static bool recv_current_pose_frame(struct data_frame *frame);
-static bool recv_path_frame(struct data_frame *frame);
-static bool recv_motor_frame(struct data_frame *frame);
-
-#define MAX_BORDER_POINTS 100
-static struct point2d data_border_points[MAX_BORDER_POINTS];
-
-#define MAX_OBSTACLE_POINTS 100
-static struct point2d data_obstacle_points[MAX_OBSTACLE_POINTS];
-
-#define MAX_PATH_POINTS 9600
-static struct path_point data_path_points[MAX_PATH_POINTS];
+static bool recv_move_frame(struct data_frame *out);
+static bool recv_scan_frame(struct data_frame *out);
+static bool recv_estimated_pose_frame(struct data_frame *out);
+static bool recv_current_pose_frame(struct data_frame *out);
+static bool recv_path_frame(struct data_frame *out);
+static bool recv_motor_frame(struct data_frame *out);
 
 void data_send_heartbeat(const struct data_heartbeat &heartbeat)
 {
@@ -45,27 +35,27 @@ void data_send_heartbeat(const struct data_heartbeat &heartbeat)
     send_frame_checksum();
 }
 
-void data_recv_frame(struct data_frame *frame)
+void data_recv_frame(struct data_frame *out)
 {
     while (1) {
         switch (recv_frame_header()) {
             case DATA_TYPE_MOVE:
-                if (recv_move_frame(frame)) return;
+                if (recv_move_frame(out)) return;
                 break;
             case DATA_TYPE_SCAN:
-                if (recv_scan_frame(frame)) return;
+                if (recv_scan_frame(out)) return;
                 break;
             case DATA_TYPE_ESTIMATED_POSE:
-                if (recv_estimated_pose_frame(frame)) return;
+                if (recv_estimated_pose_frame(out)) return;
                 break;
             case DATA_TYPE_CURRENT_POSE:
-                if (recv_current_pose_frame(frame)) return;
+                if (recv_current_pose_frame(out)) return;
                 break;
             case DATA_TYPE_PATH:
-                if (recv_path_frame(frame)) return;
+                if (recv_path_frame(out)) return;
                 break;
             case DATA_TYPE_MOTOR:
-                if (recv_motor_frame(frame)) return;
+                if (recv_motor_frame(out)) return;
                 break;
             default:
                 continue;
@@ -73,7 +63,7 @@ void data_recv_frame(struct data_frame *frame)
     }
 }
 
-static bool recv_move_frame(struct data_frame *frame)
+static bool recv_move_frame(struct data_frame *out)
 {
     uint32_t t;
     int16_t delta_x;
@@ -86,53 +76,47 @@ static bool recv_move_frame(struct data_frame *frame)
     if (!recv_i16(&delta_theta)) return false;
     if (!recv_frame_checksum()) return false;
 
-    frame->type = DATA_TYPE_MOVE;
-    frame->move.t = t;
-    frame->move.delta_x = delta_x;
-    frame->move.delta_y = delta_y;
-    frame->move.delta_theta = delta_theta;
+    out->type = DATA_TYPE_MOVE;
+    out->move.t = t;
+    out->move.delta_x = delta_x;
+    out->move.delta_y = delta_y;
+    out->move.delta_theta = delta_theta;
     return true;
 }
 
-static bool recv_scan_frame(struct data_frame *frame)
+static bool recv_scan_frame(struct data_frame *out)
 {
     uint32_t t;
     uint16_t border_point_count;
     uint16_t obstacle_point_count;
-    struct point2d *border_points = NULL;
-    struct point2d *obstacle_points = NULL;
+    struct point2d *border_points = data_acquire_border_points();
+    struct point2d *obstacle_points = data_acquire_obstacle_points();
 
     if (!recv_u32(&t)) goto err;
 
     if (!recv_u16(&border_point_count)) goto err;
-    border_points = data_acquire_border_points();
     if (!recv_buf((uint8_t *) border_points, 4 * border_point_count)) goto err;
 
     if (!recv_u16(&obstacle_point_count)) goto err;
-    obstacle_points = data_acquire_obstacle_points();
     if (!recv_buf((uint8_t *) obstacle_points, 4 * obstacle_point_count)) goto err;
 
     if (!recv_frame_checksum()) goto err;
 
-    frame->type = DATA_TYPE_SCAN;
-    frame->scan.t = t;
-    frame->scan.border_point_count = border_point_count;
-    frame->scan.border_points = border_points;
-    frame->scan.obstacle_point_count = obstacle_point_count;
-    frame->scan.obstacle_points = obstacle_points;
+    out->type = DATA_TYPE_SCAN;
+    out->scan.t = t;
+    out->scan.border_point_count = border_point_count;
+    out->scan.border_points = border_points;
+    out->scan.obstacle_point_count = obstacle_point_count;
+    out->scan.obstacle_points = obstacle_points;
     return true;
 
 err:
-    if (border_points != NULL) {
-        data_release_border_points();
-    }
-    if (obstacle_points != NULL) {
-        data_release_obstacle_points();
-    }
+    data_release_border_points();
+    data_release_obstacle_points();
     return false;
 }
 
-static bool recv_estimated_pose_frame(struct data_frame *frame)
+static bool recv_estimated_pose_frame(struct data_frame *out)
 {
     uint32_t t;
     uint16_t x;
@@ -145,15 +129,15 @@ static bool recv_estimated_pose_frame(struct data_frame *frame)
     if (!recv_i16(&theta)) return false;
     if (!recv_frame_checksum()) return false;
 
-    frame->type = DATA_TYPE_ESTIMATED_POSE;
-    frame->estimated_pose.t = t;
-    frame->estimated_pose.x = x;
-    frame->estimated_pose.y = y;
-    frame->estimated_pose.theta = theta;
+    out->type = DATA_TYPE_ESTIMATED_POSE;
+    out->estimated_pose.t = t;
+    out->estimated_pose.x = x;
+    out->estimated_pose.y = y;
+    out->estimated_pose.theta = theta;
     return true;
 }
 
-static bool recv_current_pose_frame(struct data_frame *frame)
+static bool recv_current_pose_frame(struct data_frame *out)
 {
     uint32_t t;
     uint16_t x;
@@ -166,15 +150,15 @@ static bool recv_current_pose_frame(struct data_frame *frame)
     if (!recv_i16(&theta)) return false;
     if (!recv_frame_checksum()) return false;
 
-    frame->type = DATA_TYPE_CURRENT_POSE;
-    frame->current_pose.t = t;
-    frame->current_pose.x = x;
-    frame->current_pose.y = y;
-    frame->current_pose.theta = theta;
+    out->type = DATA_TYPE_CURRENT_POSE;
+    out->current_pose.t = t;
+    out->current_pose.x = x;
+    out->current_pose.y = y;
+    out->current_pose.theta = theta;
     return true;
 }
 
-static bool recv_path_frame(struct data_frame *frame)
+static bool recv_path_frame(struct data_frame *out)
 {
     uint32_t t;
     uint16_t point_count;
@@ -188,10 +172,10 @@ static bool recv_path_frame(struct data_frame *frame)
 
     if (!recv_frame_checksum()) goto err;
 
-    frame->type = DATA_TYPE_PATH;
-    frame->path.t = t;
-    frame->path.point_count = point_count;
-    frame->path.points = points;
+    out->type = DATA_TYPE_PATH;
+    out->path.t = t;
+    out->path.point_count = point_count;
+    out->path.points = points;
     return true;
 
 err:
@@ -201,7 +185,7 @@ err:
     return false;
 }
 
-static bool recv_motor_frame(struct data_frame *frame)
+static bool recv_motor_frame(struct data_frame *out)
 {
     uint32_t t;
     int16_t speed_a;
@@ -214,11 +198,11 @@ static bool recv_motor_frame(struct data_frame *frame)
     if (!recv_i16(&speed_c)) return false;
     if (!recv_frame_checksum()) return false;
 
-    frame->type = DATA_TYPE_MOTOR;
-    frame->motor.t = t;
-    frame->motor.speed_a = speed_a;
-    frame->motor.speed_b = speed_b;
-    frame->motor.speed_c = speed_c;
+    out->type = DATA_TYPE_MOTOR;
+    out->motor.t = t;
+    out->motor.speed_a = speed_a;
+    out->motor.speed_b = speed_b;
+    out->motor.speed_c = speed_c;
     return true;
 }
 
@@ -246,7 +230,7 @@ static bool recv_frame_checksum()
 
 static bool recv_buf(uint8_t *buf, size_t n)
 {
-    if (data_hal_recv(buf, n) == (int) n) {
+    if (hal_uart_recv(buf, n) == (int) n) {
         for (size_t i = 0; i < n; ++i) {
             rx_checksum += buf[i];
         }
@@ -290,12 +274,12 @@ static void send_frame_header(enum data_frame_type frame_type)
 static void send_frame_checksum()
 {
     uint8_t x = -tx_checksum;
-    data_hal_send(&x, 1, true);
+    hal_uart_send(&x, 1, true);
 }
 
 static void send_buf(const uint8_t *buf, size_t n)
 {
-    data_hal_send(buf, n, false);
+    hal_uart_send(buf, n, false);
     for (size_t i = 0; i < n; ++i) {
         tx_checksum += buf[i];
     }
@@ -303,46 +287,10 @@ static void send_buf(const uint8_t *buf, size_t n)
 
 static void send_u8(uint8_t x)
 {
-    data_hal_send(&x, 1, false);
-    tx_checksum += x;
+    send_buf(&x, 1);
 }
 
 static void send_u32(uint32_t x)
 {
-    const uint8_t *buf = (const uint8_t *) &x;
-    data_hal_send(buf, 4, false);
-    tx_checksum += buf[0] + buf[1] + buf[2] + buf[3];
-}
-
-struct point2d *data_acquire_border_points()
-{
-    // TODO: acquire semaphore
-    return data_border_points;
-}
-
-void data_release_border_points()
-{
-    // TODO: release semaphore
-}
-
-struct point2d *data_acquire_obstacle_points()
-{
-    // TODO: acquire semaphore
-    return data_obstacle_points;
-}
-
-void data_release_obstacle_points()
-{
-    // TODO: release semaphore
-}
-
-struct path_point *data_acquire_path_points()
-{
-    // TODO: acquire semaphore
-    return data_path_points;
-}
-
-void data_release_path_points()
-{
-    // TODO: release semaphore
+    send_buf((const uint8_t *) &x, 4);
 }

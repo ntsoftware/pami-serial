@@ -1,30 +1,47 @@
 BW16_SOURCES = \
-	main_bw16.cpp \
-	data_bw16.cpp \
-	data_bw16_hal.cpp
+	test_bw16.cpp \
+	bw16/data.cpp \
+	bw16/data_buf.cpp \
+	bw16/hal.cpp
 
 BW16_HEADERS = \
-	data.h \
-	data_bw16.h \
-	data_bw16_hal.h
+	data_types.h \
+	bw16/data.h \
+	bw16/hal.h
 
 TEENSY_SOURCES = \
-	main_teensy.cpp \
-	data_teensy.cpp \
-	data_teensy_hal.cpp
+	test_teensy.cpp \
+	teensy/data.cpp \
+	teensy/hal.cpp
 
 TEENSY_HEADERS = \
-	data.h \
-	data_teensy.h \
-	data_teensy_hal.h
+	data_types.h \
+	teensy/data.h \
+	teensy/hal.h
 
-all: bw16.exe teensy.exe
+ifeq ($(OS),Windows_NT)
+    BW16_EXE = bw16.exe
+	TEENSY_EXE = teensy.exe
+else
+    BW16_EXE = bw16
+	TEENSY_EXE = teensy
+endif
 
-bw16.exe: $(BW16_SOURCES) $(BW16_HEADERS)
+.PHONY: all clean
+
+all: $(BW16_EXE) $(TEENSY_EXE)
+
+$(BW16_EXE): $(BW16_SOURCES) $(BW16_HEADERS)
 	g++ -Wall -Wextra -Werror $(BW16_SOURCES) -o $@
 
-teensy.exe: $(TEENSY_SOURCES) $(TEENSY_HEADERS)
+$(TEENSY_EXE): $(TEENSY_SOURCES) $(TEENSY_HEADERS)
 	g++ -Wall -Wextra -Werror $(TEENSY_SOURCES) -o $@
 
+ifeq ($(OS),Windows_NT)
+    RM = del
+else
+    RM = rm -f
+endif
+
 clean:
-	del bw16.exe teensy.exe
+	$(RM) $(BW16_EXE) $(TEENSY_EXE)

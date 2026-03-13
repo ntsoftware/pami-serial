@@ -1,7 +1,6 @@
 #pragma once
 
-#include "data.h"
-#include "data_teensy.h"
+#include "../data_types.h"
 
 struct data_move {
     uint32_t t;
@@ -60,7 +59,7 @@ struct data_frame {
 void data_send_heartbeat(const struct data_heartbeat &heartbeat);
 
 // this function blocks until it receives a valid data frame
-void data_recv_frame(struct data_frame *frame);
+void data_recv_frame(struct data_frame *out);
 
 struct point2d *data_acquire_border_points();
 void data_release_border_points();

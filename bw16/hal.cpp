@@ -2,12 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "data_bw16_hal.h"
+#include "hal.h"
 
 static FILE *serial_in;
 static FILE *serial_out;
 
-void data_hal_init()
+void hal_init()
 {
     serial_in = fopen("serial/bw16_rx", "r");
     if (serial_in == NULL) {
@@ -21,7 +21,7 @@ void data_hal_init()
     }
 }
 
-void data_hal_send(const uint8_t *buf, size_t n, bool flush)
+void hal_uart_send(const uint8_t *buf, size_t n, bool flush)
 {
     for (size_t i = 0; i < n; ++i) {
         fprintf(serial_out, "%02X", buf[i]);
@@ -33,7 +33,7 @@ void data_hal_send(const uint8_t *buf, size_t n, bool flush)
     }
 }
 
-int data_hal_recv(uint8_t *buf, size_t n)
+int hal_uart_recv(uint8_t *buf, size_t n)
 {
     for (size_t i = 0; i < n; ++i) {
         int x;
@@ -43,7 +43,7 @@ int data_hal_recv(uint8_t *buf, size_t n)
         if (fscanf(serial_in, "%x", &x) != 1) {
             return -1;
         }
-        buf[i]  =x;
+        buf[i] = x;
     }
     return n;
 }
