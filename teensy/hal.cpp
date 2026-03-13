@@ -9,12 +9,12 @@ static FILE *serial_out;
 
 void hal_init()
 {
-    serial_in = fopen("serial/teensy_rx", "r");
+    serial_in = fopen("test/teensy_rx", "r");
     if (serial_in == NULL) {
         perror("cannot open serial input file");
         exit(1);
     }
-    serial_out = fopen("serial/teensy_tx", "w");
+    serial_out = fopen("test/teensy_tx", "w");
     if (serial_out == NULL) {
         perror("cannot create serial output file");
         exit(1);
