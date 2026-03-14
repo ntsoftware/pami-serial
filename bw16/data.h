@@ -2,6 +2,10 @@
 
 #include "../data_types.h"
 
+#define DATA_MAX_BORDER_POINTS 360
+#define DATA_MAX_OBSTACLE_POINTS 360
+#define DATA_MAX_PATH_POINTS 500
+
 struct data_move {
     uint32_t t;
     int16_t delta_x; // mm

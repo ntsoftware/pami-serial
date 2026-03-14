@@ -13,6 +13,7 @@ static void send_u32(uint32_t x);
 static int recv_frame_header();
 static bool recv_frame_checksum();
 static bool recv_buf(uint8_t *buf, size_t n);
+static bool recv_buf_with_size(uint8_t *buf, size_t n, size_t buf_size);
 static bool recv_u8(uint8_t *out);
 static bool recv_i16(int16_t *out);
 static bool recv_u16(uint16_t *out);
@@ -24,6 +25,16 @@ static bool recv_estimated_pose_frame(struct data_frame *out);
 static bool recv_current_pose_frame(struct data_frame *out);
 static bool recv_path_frame(struct data_frame *out);
 static bool recv_motor_frame(struct data_frame *out);
+
+static uint16_t min(uint16_t a, uint16_t b)
+{
+    return a < b ? a : b;
+}
+
+static size_t min(size_t a, size_t b)
+{
+    return a < b ? a : b;
+}
 
 void data_send_heartbeat(const struct data_heartbeat &heartbeat)
 {
@@ -95,18 +106,18 @@ static bool recv_scan_frame(struct data_frame *out)
     if (!recv_u32(&t)) goto err;
 
     if (!recv_u16(&border_point_count)) goto err;
-    if (!recv_buf((uint8_t *) border_points, 4 * border_point_count)) goto err;
+    if (!recv_buf_with_size((uint8_t *) border_points, 4 * border_point_count, 4 * DATA_MAX_BORDER_POINTS)) goto err;
 
     if (!recv_u16(&obstacle_point_count)) goto err;
-    if (!recv_buf((uint8_t *) obstacle_points, 4 * obstacle_point_count)) goto err;
+    if (!recv_buf_with_size((uint8_t *) obstacle_points, 4 * obstacle_point_count, 4 * DATA_MAX_OBSTACLE_POINTS)) goto err;
 
     if (!recv_frame_checksum()) goto err;
 
     out->type = DATA_TYPE_SCAN;
     out->scan.t = t;
-    out->scan.border_point_count = border_point_count;
+    out->scan.border_point_count = min(border_point_count, DATA_MAX_BORDER_POINTS);
     out->scan.border_points = border_points;
-    out->scan.obstacle_point_count = obstacle_point_count;
+    out->scan.obstacle_point_count = min(obstacle_point_count, DATA_MAX_OBSTACLE_POINTS);
     out->scan.obstacle_points = obstacle_points;
     return true;
 
@@ -168,13 +179,13 @@ static bool recv_path_frame(struct data_frame *out)
 
     if (!recv_u16(&point_count)) goto err;
     points = data_acquire_path_points();
-    if (!recv_buf((uint8_t *) points, 2 * point_count)) goto err;
+    if (!recv_buf_with_size((uint8_t *) points, 2 * point_count, 2 * DATA_MAX_PATH_POINTS)) goto err;
 
     if (!recv_frame_checksum()) goto err;
 
     out->type = DATA_TYPE_PATH;
     out->path.t = t;
-    out->path.point_count = point_count;
+    out->path.point_count = min(point_count, DATA_MAX_PATH_POINTS);
     out->path.points = points;
     return true;
 
@@ -238,6 +249,21 @@ static bool recv_buf(uint8_t *buf, size_t n)
     } else {
         return false;
     }
+}
+
+// receive n bytes total, store maximum buf_size bytes into buf
+static bool recv_buf_with_size(uint8_t *buf, size_t n, size_t buf_size)
+{
+    if (!recv_buf(buf, min(n, buf_size))) {
+        return false;
+    }
+    for (size_t i = buf_size; i < n; ++i) {
+        uint8_t x;
+        if (!recv_u8(&x)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 static bool recv_u8(uint8_t *out)
