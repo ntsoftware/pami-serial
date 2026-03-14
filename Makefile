@@ -20,11 +20,11 @@ TEENSY_HEADERS = \
 	teensy/hal.h
 
 ifeq ($(OS),Windows_NT)
-    BW16_EXE = bw16.exe
-	TEENSY_EXE = teensy.exe
+    BW16_EXE = test_bw16.exe
+	TEENSY_EXE = test_teensy.exe
 else
-    BW16_EXE = bw16
-	TEENSY_EXE = teensy
+    BW16_EXE = test_bw16
+	TEENSY_EXE = test_teensy
 endif
 
 .PHONY: all clean
