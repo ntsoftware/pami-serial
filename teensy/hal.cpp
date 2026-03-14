@@ -35,13 +35,13 @@ void hal_uart_send(const uint8_t *buf, size_t n, bool flush)
 
 int hal_uart_recv(uint8_t *buf, size_t n)
 {
+    if (feof(serial_in)) {
+        exit(0);
+    }
     for (size_t i = 0; i < n; ++i) {
         int x;
-        if (feof(serial_in)) {
-            exit(0);
-        }
         if (fscanf(serial_in, "%x", &x) != 1) {
-            return -1;
+            return i;
         }
         buf[i] = x;
     }

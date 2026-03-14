@@ -2,8 +2,10 @@
 
 #include "../data_types.h"
 
-// this function blocks until it receives a valid heartbeat frame
-void data_recv_heartbeat_frame(struct data_heartbeat *out);
+void data_init();
+
+// this function returns true if a valid heartbeat frame is received in the out buffer
+bool data_recv_heartbeat_frame(struct data_heartbeat *out);
 
 void data_send_move_frame(int16_t delta_x, int16_t delta_y, int16_t delta_theta);
 

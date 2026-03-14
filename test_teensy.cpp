@@ -5,6 +5,7 @@
 int main()
 {
     hal_init();
+    data_init();
 
     data_send_move_frame(10, -10, 5);
 
@@ -37,13 +38,14 @@ int main()
 
     while (1) {
         struct data_heartbeat heartbeat;
-        data_recv_heartbeat_frame(&heartbeat);
 
-        printf("heartbeat frame\n");
-        printf("robot_mode=%d\n", heartbeat.robot_mode);
-        printf("team_color=%d\n", heartbeat.team_color);
-        printf("goal_zone=%d\n", heartbeat.goal_zone);
-        printf("game_time=%d\n", heartbeat.game_time);
+        if (data_recv_heartbeat_frame(&heartbeat)) {
+            printf("heartbeat frame\n");
+            printf("robot_mode=%d\n", heartbeat.robot_mode);
+            printf("team_color=%d\n", heartbeat.team_color);
+            printf("goal_zone=%d\n", heartbeat.goal_zone);
+            printf("game_time=%d\n", heartbeat.game_time);
+        }
     }
 
     return 0;
