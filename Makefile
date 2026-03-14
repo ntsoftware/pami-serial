@@ -32,10 +32,10 @@ endif
 all: $(BW16_EXE) $(TEENSY_EXE)
 
 $(BW16_EXE): $(BW16_SOURCES) $(BW16_HEADERS)
-	g++ -Wall -Wextra -Werror $(BW16_SOURCES) -o $@
+	g++ -g -Wall -Wextra -Werror $(BW16_SOURCES) -o $@
 
 $(TEENSY_EXE): $(TEENSY_SOURCES) $(TEENSY_HEADERS)
-	g++ -Wall -Wextra -Werror $(TEENSY_SOURCES) -o $@
+	g++ -g -Wall -Wextra -Werror $(TEENSY_SOURCES) -o $@
 
 ifeq ($(OS),Windows_NT)
     RM = del
