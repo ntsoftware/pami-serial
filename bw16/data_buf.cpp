@@ -1,12 +1,12 @@
 #include "data.h"
 
-#define MAX_BORDER_POINTS 100
+#define MAX_BORDER_POINTS 360
 static struct point2d data_border_points[MAX_BORDER_POINTS];
 
-#define MAX_OBSTACLE_POINTS 100
+#define MAX_OBSTACLE_POINTS 360
 static struct point2d data_obstacle_points[MAX_OBSTACLE_POINTS];
 
-#define MAX_PATH_POINTS 9600
+#define MAX_PATH_POINTS 500
 static struct path_point data_path_points[MAX_PATH_POINTS];
 
 struct point2d *data_acquire_border_points()
