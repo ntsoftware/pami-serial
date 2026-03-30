@@ -1,5 +1,6 @@
 {
-    "editor.inlayHints.enabled": "off",
-    "files.encoding": "utf8",
-    "files.eol": "\n",
+  "editor.inlayHints.enabled": "off",
+  "files.trimTrailingWhitespace": "true",
+  "files.encoding": "utf8",
+  "files.eol": "\n",
 }

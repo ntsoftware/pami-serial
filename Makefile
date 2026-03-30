@@ -1,7 +1,6 @@
 BW16_SOURCES = \
 	test_bw16.cpp \
 	bw16/data.cpp \
-	bw16/data_buf.cpp \
 	bw16/hal.cpp
 
 BW16_HEADERS = \
@@ -32,10 +31,16 @@ endif
 all: $(BW16_EXE) $(TEENSY_EXE)
 
 $(BW16_EXE): $(BW16_SOURCES) $(BW16_HEADERS)
-	g++ -g -Wall -Wextra -Werror $(BW16_SOURCES) -o $@
+	g++ -g -Wall -Wextra -Werror \
+	    -DHAL_RX_FILE="\"$(CURDIR)/test/bw16_rx\"" \
+		-DHAL_TX_FILE="\"$(CURDIR)/test/bw16_tx\"" \
+		$(BW16_SOURCES) -o $@
 
 $(TEENSY_EXE): $(TEENSY_SOURCES) $(TEENSY_HEADERS)
-	g++ -g -Wall -Wextra -Werror $(TEENSY_SOURCES) -o $@
+	g++ -g -Wall -Wextra -Werror \
+	    -DHAL_RX_FILE="\"$(CURDIR)/test/teensy_rx\"" \
+		-DHAL_TX_FILE="\"$(CURDIR)/test/teensy_tx\"" \
+		$(TEENSY_SOURCES) -o $@
 
 ifeq ($(OS),Windows_NT)
     RM = del

@@ -1,46 +1,50 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "hal.h"
 
-static FILE *serial_in;
-static FILE *serial_out;
+using namespace hal;
 
-void hal_init()
+UART hal::uart;
+
+UART::UART()
 {
-    serial_in = fopen("test/bw16_rx", "r");
-    if (serial_in == NULL) {
+    in = fopen(HAL_RX_FILE, "r");
+    if (in == NULL) {
         perror("cannot open serial input file");
         exit(1);
     }
-    serial_out = fopen("test/bw16_tx", "w");
-    if (serial_out == NULL) {
+    out = fopen(HAL_TX_FILE, "w");
+    if (out == NULL) {
         perror("cannot create serial output file");
         exit(1);
     }
 }
 
-void hal_uart_send(const uint8_t *buf, size_t n, bool flush)
+UART::~UART()
+{
+    fclose(in);
+    fclose(out);
+}
+
+void UART::send(const uint8_t *buf, size_t n, bool flush)
 {
     for (size_t i = 0; i < n; ++i) {
-        fprintf(serial_out, "%02X", buf[i]);
+        fprintf(out, "%02X", buf[i]);
         if (i == n - 1 && flush) {
-            fputc('\n', serial_out);
+            fputc('\n', out);
         } else {
-            fputc(' ', serial_out);
+            fputc(' ', out);
         }
     }
 }
 
-int hal_uart_recv(uint8_t *buf, size_t n)
+int UART::recv(uint8_t *buf, size_t n)
 {
-    if (feof(serial_in)) {
+    if (feof(in)) {
         exit(0);
     }
     for (size_t i = 0; i < n; ++i) {
         int x;
-        if (fscanf(serial_in, "%x", &x) != 1) {
+        if (fscanf(in, "%x", &x) != 1) {
             return i;
         }
         buf[i] = x;
@@ -48,9 +52,14 @@ int hal_uart_recv(uint8_t *buf, size_t n)
     return n;
 }
 
-uint32_t data_hal_time()
+Time hal::time;
+
+Time::Time() : t(0)
 {
-    static uint32_t t = 0;
+}
+
+uint32_t Time::get()
+{
     ++t;
     return t;
 }

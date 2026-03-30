@@ -1,36 +1,13 @@
 #include "data.h"
 #include "hal.h"
 
-static size_t rx_pos;
-static uint8_t rx_buf[16];
-static uint8_t tx_checksum;
-
-static void send_frame_header(enum data_frame_type frame_type);
-static void send_frame_checksum();
-static void send_buf(const uint8_t *buf, size_t n);
-static void send_i16(int16_t x);
-static void send_u16(uint16_t x);
-static void send_u32(uint32_t x);
-
-static void shift_rx_buf(size_t n);
-static bool verify_rx_checksum(size_t n);
-
-enum parse_result {
-    PARSE_WAIT,
-    PARSE_SUCCESS,
-    PARSE_FAILURE,
-};
-
-static enum parse_result parse_heartbeat_frame(struct data_heartbeat *out);
-
-void data_init()
+Data::Data() : rx_pos(0), rx_buf(), tx_checksum()
 {
-    rx_pos = 0;
 }
 
-bool data_recv_heartbeat_frame(struct data_heartbeat *out)
+bool Data::recv_heartbeat_frame(Heartbeat &out)
 {
-    int n = hal_uart_recv(&rx_buf[rx_pos], sizeof(rx_buf) - rx_pos);
+    int n = hal::uart.recv(&rx_buf[rx_pos], sizeof(rx_buf) - rx_pos);
     if (n < 0) {
         rx_pos = 0;
         return false;
@@ -47,41 +24,41 @@ bool data_recv_heartbeat_frame(struct data_heartbeat *out)
             shift_rx_buf(2);
             continue;
         }
-        if (rx_pos > 2 && rx_buf[2] != DATA_TYPE_HEARTBEAT) {
+        if (rx_pos > 2 && rx_buf[2] != FRAME_TYPE_HEARTBEAT) {
             shift_rx_buf(3);
             continue;
         }
         switch (parse_heartbeat_frame(out)) {
-            case PARSE_WAIT:
+            case PARSE_RESULT_WAIT:
                 return false;
-            case PARSE_SUCCESS:
+            case PARSE_RESULT_SUCCESS:
                 return true;
-            case PARSE_FAILURE:
+            case PARSE_RESULT_FAILURE:
                 continue;
         }
     }
 }
 
-static enum parse_result parse_heartbeat_frame(struct data_heartbeat *out)
+Data::ParseResult Data::parse_heartbeat_frame(Heartbeat &out)
 {
     const size_t frame_size = 11; // in bytes, including header and checksum
     static_assert(sizeof(rx_buf) >= frame_size, "a heartbeat frame cannot fit into the rx buffer, increase rx_buf size");
     if (rx_pos < frame_size) {
-        return PARSE_WAIT;
+        return PARSE_RESULT_WAIT;
     }
     if (!verify_rx_checksum(frame_size)) {
         shift_rx_buf(frame_size);
-        return PARSE_FAILURE;
+        return PARSE_RESULT_FAILURE;
     }
-    out->robot_mode = (enum robot_mode) rx_buf[3];
-    out->team_color = (enum team_color) rx_buf[4];
-    out->goal_zone = rx_buf[5];
-    out->game_time = rx_buf[6] | ((uint32_t) rx_buf[7] << 8) | ((uint32_t) rx_buf[8] << 16) | ((uint32_t) rx_buf[9] << 24);
+    out.robot_mode = (RobotMode) rx_buf[3];
+    out.team_color = (TeamColor) rx_buf[4];
+    out.goal_zone = rx_buf[5];
+    out.game_time = rx_buf[6] | ((uint32_t) rx_buf[7] << 8) | ((uint32_t) rx_buf[8] << 16) | ((uint32_t) rx_buf[9] << 24);
     shift_rx_buf(frame_size);
-    return PARSE_SUCCESS;
+    return PARSE_RESULT_SUCCESS;
 }
 
-static void shift_rx_buf(size_t n)
+void Data::shift_rx_buf(size_t n)
 {
     if (n < rx_pos) {
         for (size_t i = 0; n + i < rx_pos; ++i) {
@@ -93,7 +70,7 @@ static void shift_rx_buf(size_t n)
     }
 }
 
-static bool verify_rx_checksum(size_t n)
+bool Data::verify_rx_checksum(size_t n) const
 {
     uint8_t checksum = 0;
     for (size_t i = 0; i < n; ++i) {
@@ -102,23 +79,23 @@ static bool verify_rx_checksum(size_t n)
     return checksum == 0;
 }
 
-void data_send_move_frame(int16_t delta_x, int16_t delta_y, int16_t delta_theta)
+void Data::send_move_frame(int16_t delta_x, int16_t delta_y, int16_t delta_theta)
 {
-    send_frame_header(DATA_TYPE_MOVE);
-    send_u32(data_hal_time());
+    send_frame_header(FRAME_TYPE_MOVE);
+    send_u32(hal::time.get());
     send_i16(delta_x);
     send_i16(delta_y);
     send_i16(delta_theta);
     send_frame_checksum();
 }
 
-void data_send_scan_frame(
-    const struct point2d *border_points, size_t border_point_count,
-    const struct point2d *obstacle_points, size_t obstacle_point_count
+void Data::send_scan_frame(
+    const Point2d *border_points, size_t border_point_count,
+    const Point2d *obstacle_points, size_t obstacle_point_count
 )
 {
-    send_frame_header(DATA_TYPE_SCAN);
-    send_u32(data_hal_time());
+    send_frame_header(FRAME_TYPE_SCAN);
+    send_u32(hal::time.get());
     send_u16(border_point_count);
     send_buf((const uint8_t *) border_points, 4 * border_point_count);
     send_u16(obstacle_point_count);
@@ -126,46 +103,46 @@ void data_send_scan_frame(
     send_frame_checksum();
 }
 
-void data_send_estimated_pose_frame(uint16_t x, uint16_t y, int16_t theta)
+void Data::send_estimated_pose_frame(uint16_t x, uint16_t y, int16_t theta)
 {
-    send_frame_header(DATA_TYPE_ESTIMATED_POSE);
-    send_u32(data_hal_time());
+    send_frame_header(FRAME_TYPE_ESTIMATED_POSE);
+    send_u32(hal::time.get());
     send_u16(x);
     send_u16(y);
     send_i16(theta);
     send_frame_checksum();
 }
 
-void data_send_current_pose_frame(uint16_t x, uint16_t y, int16_t theta)
+void Data::send_current_pose_frame(uint16_t x, uint16_t y, int16_t theta)
 {
-    send_frame_header(DATA_TYPE_CURRENT_POSE);
-    send_u32(data_hal_time());
+    send_frame_header(FRAME_TYPE_CURRENT_POSE);
+    send_u32(hal::time.get());
     send_u16(x);
     send_u16(y);
     send_i16(theta);
     send_frame_checksum();
 }
 
-void data_send_path_frame(const struct path_point *points, size_t point_count)
+void Data::send_path_frame(const PathPoint *points, size_t point_count)
 {
-    send_frame_header(DATA_TYPE_PATH);
-    send_u32(data_hal_time());
+    send_frame_header(FRAME_TYPE_PATH);
+    send_u32(hal::time.get());
     send_u16(point_count);
     send_buf((const uint8_t *) points, 2 * point_count);
     send_frame_checksum();
 }
 
-void data_send_motor_frame(int16_t speed_a, int16_t speed_b, int16_t speed_c)
+void Data::send_motor_frame(int16_t speed_a, int16_t speed_b, int16_t speed_c)
 {
-    send_frame_header(DATA_TYPE_MOTOR);
-    send_u32(data_hal_time());
+    send_frame_header(FRAME_TYPE_MOTOR);
+    send_u32(hal::time.get());
     send_i16(speed_a);
     send_i16(speed_b);
     send_i16(speed_c);
     send_frame_checksum();
 }
 
-static void send_frame_header(enum data_frame_type frame_type)
+void Data::send_frame_header(FrameType frame_type)
 {
     const uint8_t buf[3] = {
         0x55,
@@ -176,31 +153,31 @@ static void send_frame_header(enum data_frame_type frame_type)
     send_buf(buf, sizeof(buf));
 }
 
-static void send_frame_checksum()
+void Data::send_frame_checksum()
 {
     uint8_t x = -tx_checksum;
-    hal_uart_send(&x, 1, true);
+    hal::uart.send(&x, 1, true);
 }
 
-static void send_buf(const uint8_t *buf, size_t n)
+void Data::send_buf(const uint8_t *buf, size_t n)
 {
-    hal_uart_send(buf, n, false);
+    hal::uart.send(buf, n, false);
     for (size_t i = 0; i < n; ++i) {
         tx_checksum += buf[i];
     }
 }
 
-static void send_i16(int16_t x)
+void Data::send_i16(int16_t x)
 {
     send_buf((const uint8_t *) &x, 2);
 }
 
-static void send_u16(uint16_t x)
+void Data::send_u16(uint16_t x)
 {
     send_buf((const uint8_t *) &x, 2);
 }
 
-static void send_u32(uint32_t x)
+void Data::send_u32(uint32_t x)
 {
     send_buf((const uint8_t *) &x, 4);
 }

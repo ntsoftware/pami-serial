@@ -1,3 +1,6 @@
 *.exe
 test_bw16
 test_teensy
+/build
+/out
+/.vs
