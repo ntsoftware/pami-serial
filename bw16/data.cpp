@@ -80,12 +80,12 @@ bool Data::recv_scan_frame(DataFrame &out)
     uint16_t obstacle_point_count;
 
     if (!recv_u32(t)) return false;
-
     if (!recv_u16(border_point_count)) return false;
+    if (!recv_u16(obstacle_point_count)) return false;
+
     DataBufferLock<Point2d> border_points_lock = border_points.lock();
     if (!recv_buf_with_size((uint8_t *) border_points_lock.ptr(), 4 * border_point_count, 4 * border_points.LEN)) return false;
 
-    if (!recv_u16(obstacle_point_count)) return false;
     DataBufferLock<Point2d> obstacle_points_lock = obstacle_points.lock();
     if (!recv_buf_with_size((uint8_t *) obstacle_points_lock.ptr(), 4 * obstacle_point_count, 4 * obstacle_points.LEN)) return false;
 
@@ -148,8 +148,8 @@ bool Data::recv_path_frame(DataFrame &out)
     uint16_t point_count;
 
     if (!recv_u32(t)) return false;
-
     if (!recv_u16(point_count)) return false;
+
     DataBufferLock<PathPoint> points_lock = path_points.lock();
     if (!recv_buf_with_size((uint8_t *) points_lock.ptr(), 2 * point_count, 2 * path_points.LEN)) return false;
 

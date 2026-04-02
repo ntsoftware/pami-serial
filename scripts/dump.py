@@ -35,10 +35,9 @@ class Point2d:
     y: int
 
     @classmethod
-    def parse_array(cls, reader: Reader) -> "Sequence[Point2d]":
+    def parse_array(cls, reader: Reader, count: int) -> "Sequence[Point2d]":
         values = []
-        n = reader.next_u16()
-        for _ in range(n):
+        for _ in range(count):
             x = reader.next_u16()
             y = reader.next_u16()
             values.append(cls(x, y))
@@ -51,10 +50,9 @@ class PathPoint:
     iy: int
 
     @classmethod
-    def parse_array(cls, reader: Reader) -> "Sequence[PathPoint]":
+    def parse_array(cls, reader: Reader, count: int) -> "Sequence[PathPoint]":
         values = []
-        n = reader.next_u16()
-        for _ in range(n):
+        for _ in range(count):
             x = reader.next_u8()
             y = reader.next_u8()
             values.append(cls(x, y))
@@ -88,8 +86,10 @@ class Scan:
     @classmethod
     def parse(cls, reader: Reader) -> "Scan":
         t = reader.next_u32()
-        border_points = Point2d.parse_array(reader)
-        obstacle_points = Point2d.parse_array(reader)
+        border_point_count = reader.next_u16()
+        obstacle_point_count = reader.next_u16()
+        border_points = Point2d.parse_array(reader, border_point_count)
+        obstacle_points = Point2d.parse_array(reader, obstacle_point_count)
         return cls("scan", t, border_points, obstacle_points)
 
 
@@ -136,7 +136,8 @@ class Path:
     @classmethod
     def parse(cls, reader: Reader) -> "Path":
         t = reader.next_u32()
-        points = PathPoint.parse_array(reader)
+        point_count = reader.next_u16()
+        points = PathPoint.parse_array(reader, point_count)
         return cls("path", t, points)
 
 
@@ -208,9 +209,9 @@ class Capture:
         return cls(version, frames)
 
 
-data = bytes.fromhex(
-    "01 00 00 00 02 01 00 00 00 0A 00 F6 FF 05 00 02 02 00 00 00 0A 00 F6 FF 05 00 03 02 00 00 00 03 00 01 00 02 00 03 00 04 00 05 00 06 00 03 00 0B 00 0C 00 0D 00 0E 00 0F 00 10 00 04 03 00 00 00 64 00 C8 00 2C 01 05 04 00 00 00 64 00 C8 00 2C 01 06 05 00 00 00 03 00 01 02 03 04 05 06 07 06 00 00 00 64 00 C8 00 2C 01"
-)
+with open("test/capture", "rb") as f:
+    data = f.read()
+
 reader = Reader(data)
 capture = Capture.parse(reader)
 print(json.dumps(asdict(capture), indent=2))

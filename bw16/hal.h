@@ -29,4 +29,15 @@ namespace hal {
     };
 
     extern Time time;
+
+    class File {
+    public:
+        File();
+        ~File();
+        bool open(const char *path);
+        void close();
+        void write(const uint8_t *buf, size_t n);
+    private:
+        FILE *f;
+    };
 }

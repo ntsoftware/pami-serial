@@ -63,3 +63,31 @@ uint32_t Time::get()
     ++t;
     return t;
 }
+
+File::File() : f(NULL)
+{
+}
+
+File::~File()
+{
+    close();
+}
+
+bool File::open(const char *path)
+{
+    f = fopen(path, "wb");
+    return f != NULL;
+}
+
+void File::close()
+{
+    if (f != NULL) {
+        fclose(f);
+        f = NULL;
+    }
+}
+
+void File::write(const uint8_t *buf, size_t n)
+{
+    fwrite(buf, n, 1, f);
+}

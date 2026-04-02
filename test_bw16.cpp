@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "bw16/capture.h"
 #include "bw16/data.h"
 
 static void print_points(const Point2d *points, size_t n)
@@ -43,9 +44,12 @@ int main()
     };
     data.send_heartbeat(heartbeat2);
 
+    Capture cap(CAPTURE_FILE);
+
     while (1) {
         DataFrame frame;
         data.recv_frame(frame);
+        cap.write_frame(frame);
 
         switch (frame.type) {
             case FRAME_TYPE_MOVE:

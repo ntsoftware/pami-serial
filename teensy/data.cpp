@@ -97,8 +97,8 @@ void Data::send_scan_frame(
     send_frame_header(FRAME_TYPE_SCAN);
     send_u32(hal::time.get());
     send_u16(border_point_count);
-    send_buf((const uint8_t *) border_points, 4 * border_point_count);
     send_u16(obstacle_point_count);
+    send_buf((const uint8_t *) border_points, 4 * border_point_count);
     send_buf((const uint8_t *) obstacle_points, 4 * obstacle_point_count);
     send_frame_checksum();
 }

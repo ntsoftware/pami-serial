@@ -1,10 +1,12 @@
 BW16_SOURCES = \
 	test_bw16.cpp \
+	bw16/capture.cpp \
 	bw16/data.cpp \
 	bw16/hal.cpp
 
 BW16_HEADERS = \
 	data_types.h \
+	bw16/capture.h \
 	bw16/data.h \
 	bw16/hal.h
 
@@ -34,6 +36,7 @@ $(BW16_EXE): $(BW16_SOURCES) $(BW16_HEADERS)
 	g++ -g -Wall -Wextra -Werror \
 	    -DHAL_RX_FILE="\"$(CURDIR)/test/bw16_rx\"" \
 		-DHAL_TX_FILE="\"$(CURDIR)/test/bw16_tx\"" \
+		-DCAPTURE_FILE="\"$(CURDIR)/test/capture\"" \
 		$(BW16_SOURCES) -o $@
 
 $(TEENSY_EXE): $(TEENSY_SOURCES) $(TEENSY_HEADERS)
